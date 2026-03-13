@@ -1,0 +1,55 @@
+# Datasets (Large Files)
+Offroad_Segmentation_Training_Dataset/
+Offroad_Segmentation_Training_Dataset.zip
+Offroad_Segmentation_testImages/
+path_visualization_results
+range_test_results
+final_visualization_results
+CaptureSensor_BP_C_0_Color
+track_result
+visualization_results1
+# Model Weights & Checkpoints
+!best_model.pth
+!segmentation_head.pth
+runs/checkpoints/
+
+# Logs & Metrics
+runs/logs/
+train_stats/
+
+# Inference Results
+inference_results/
+Offroad_Segmentation_Scripts/inference_results/
+verify_loader_output/
+
+# Dependencies
+node_modules/
+venv/
+.pnp
+.pnp.js
+
+# Build Outputs
+dist/
+.turbo/
+.vercel/
+build/
+
+# Environment & IDE
+.env*
+.vscode/
+.idea/
+.ipynb_checkpoints/
+
+# Python / System
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+*.log
+*.pem
+
+# Gemini/Antigravity ArtifactS
+.gemini/
+brain/
+*.pth
+*.mp4

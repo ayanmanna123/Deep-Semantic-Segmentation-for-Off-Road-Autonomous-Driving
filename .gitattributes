@@ -1,0 +1,1 @@
+Offroad_Segmentation_Web/backend/best_model.onnx.data filter=lfs diff=lfs merge=lfs -text
