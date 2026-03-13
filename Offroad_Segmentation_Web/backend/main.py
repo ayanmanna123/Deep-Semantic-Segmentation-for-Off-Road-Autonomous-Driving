@@ -8,7 +8,7 @@ import torch
 import numpy as np
 import base64
 import os
-from model_utils import load_model, predict_on_image, get_overlay, get_class_stats, process_gt_mask, mask_to_rgb
+from model_utils import load_model, predict_on_image, get_overlay, get_class_stats, process_gt_mask, mask_to_rgb, get_path_visualization
 
 app = FastAPI()
 
@@ -57,11 +57,15 @@ async def predict(file: UploadFile = File(...)):
     try:
         contents = await file.read()
         # Run prediction
-        orig_img, mask_rgb, _ = predict_on_image(model, preprocessing_fn, contents, DEVICE)
+        orig_img, mask_rgb, mask_indices = predict_on_image(model, preprocessing_fn, contents, DEVICE)
+        
+        # Generate path visualization
+        path_viz = get_path_visualization(orig_img, mask_indices, mask_rgb)
         
         return {
             "original": to_b64(orig_img),
-            "mask": to_b64(mask_rgb)
+            "mask": to_b64(mask_rgb),
+            "path_viz": to_b64(path_viz)
         }
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

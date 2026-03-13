@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@workspace/ui/components/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { Input } from "@workspace/ui/components/input"
@@ -22,24 +22,17 @@ const CLASS_COLORS: Record<string, string> = {
 }
 
 export function App() {
-  const [plots, setPlots] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   
   // Single Inference State
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [resultImages, setResultImages] = useState<{ original: string, mask: string } | null>(null)
+  const [resultImages, setResultImages] = useState<{ original: string, mask: string, path: string } | null>(null)
   
   // Detailed Report State
   const [reportFiles, setReportFiles] = useState<{ image: File | null, gt: File | null }>({ image: null, gt: null })
   const [reportData, setReportData] = useState<any | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch(`${BACKEND_URL}/plots`)
-      .then(res => res.json())
-      .then(data => setPlots(data.plots))
-      .catch(err => console.error("Error fetching plots:", err))
-  }, [])
 
   const handleSingleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -68,7 +61,8 @@ export function App() {
       const data = await response.json()
       setResultImages({
         original: `data:image/jpeg;base64,${data.original}`,
-        mask: `data:image/jpeg;base64,${data.mask}`
+        mask: `data:image/jpeg;base64,${data.mask}`,
+        path: `data:image/jpeg;base64,${data.path_viz}`
       })
     } catch (err: any) {
       console.error("Inference error:", err)
@@ -340,7 +334,7 @@ export function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-4">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-4">
                   {previewUrl && (
                     <div className="space-y-4">
                       <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-center">Input Sample</p>
@@ -348,10 +342,16 @@ export function App() {
                     </div>
                   )}
                   {resultImages && (
-                    <div className="space-y-4">
-                      <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-center">Inference Result</p>
-                      <img src={resultImages.mask} alt="Segmentation Result" className="w-full rounded-2xl shadow-2xl ring-4 ring-indigo-500/10 border border-indigo-500/20" />
-                    </div>
+                    <>
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold text-slate-600 uppercase tracking-widest text-center">Segmentation Mask</p>
+                        <img src={resultImages.mask} alt="Segmentation Result" className="w-full rounded-2xl shadow-2xl ring-1 ring-white/10" />
+                      </div>
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest text-center">Path Visualization</p>
+                        <img src={resultImages.path} alt="Path Result" className="w-full rounded-2xl shadow-2xl ring-4 ring-indigo-500/20 border border-indigo-500/30" />
+                      </div>
+                    </>
                   )}
                   {!previewUrl && (
                     <div className="col-span-full py-40 bg-white/[0.01] border-2 border-dashed border-white/[0.03] rounded-3xl flex flex-col items-center justify-center text-slate-700">

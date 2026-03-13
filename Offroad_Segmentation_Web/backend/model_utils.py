@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import segmentation_models_pytorch as smp
 import albumentations as A
+from path_planner import PathPlanner
 
 class OffroadDatasetSimple:
     CLASSES_MAP = {
@@ -118,3 +119,37 @@ def predict_on_image(model, preprocessing_fn, image_bytes, device):
     mask_rgb = mask_to_rgb(mask_resized)
     
     return image, mask_rgb, mask_resized
+
+def get_path_visualization(image, mask_indices, mask_rgb):
+    """
+    Finds the safest path on the mask and draws it on top of a segmentation overlay.
+    """
+    planner = PathPlanner()
+    path = planner.find_safest_path(mask_indices)
+    
+    h_orig, w_orig = image.shape[:2]
+    h_model, w_model = mask_indices.shape
+    scale_x = w_orig / w_model
+    scale_y = h_orig / h_model
+    
+    scaled_path = [(int(x * scale_x), int(y * scale_y)) for x, y in path]
+    
+    # Create overlay first (Original Image + Segmented Mask)
+    vis_image = get_overlay(image, mask_rgb, alpha=0.5)
+    
+    if len(scaled_path) > 1:
+        pts = np.array(scaled_path, np.int32).reshape((-1, 1, 2))
+        
+        # Create a blue path effect
+        path_mask = np.zeros_like(vis_image)
+        # Using RGB: (0, 80, 255) for blue ribbon
+        cv2.polylines(path_mask, [pts], isClosed=False, color=(0, 80, 255), thickness=30) 
+        
+        # Blend the path onto the overlay
+        path_indices = np.where(np.any(path_mask > 0, axis=-1))
+        vis_image[path_indices] = cv2.addWeighted(vis_image[path_indices], 0.2, path_mask[path_indices], 0.8, 0)
+        
+        # Add a sharper center line (Light Blue)
+        cv2.polylines(vis_image, [pts], isClosed=False, color=(100, 200, 255), thickness=4)
+
+    return vis_image
