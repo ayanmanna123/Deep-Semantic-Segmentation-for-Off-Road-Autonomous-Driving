@@ -1,241 +1,151 @@
 import numpy as np
 import cv2
+import heapq
 
 class PathPlanner:
     """
-    Utility to calculate the safest path from a segmentation mask.
+    Advanced Path Planner using A* search with Obstacle Inflation (Safety Buffers).
     """
     
-    # Class mapping from dataset_loader.py (for reference)
-    # 0: Trees
-    # 1: Lush Bushes
-    # 2: Dry Grass
-    # 3: Dry Bushes
-    # 4: Ground Clutter
-    # 5: Flowers
-    # 6: Logs
-    # 7: Rocks
-    # 8: Landscape
-    # 9: Sky
+    # Class mapping for reference
+    # 0: Trees, 1: Lush Bushes, 2: Dry Grass, 3: Dry Bushes, 4: Ground Clutter,
+    # 5: Flowers, 6: Logs, 7: Rocks, 8: Landscape, 9: Sky
 
-    # Traversability Costs (Lower is safer)
     TRAVERSABILITY_COSTS = {
-        0: 100,  # Trees (Impassable)
-        1: 20,   # Lush Bushes (Moderate resistance)
-        2: 2,    # Dry Grass (Extremely safe)
-        3: 10,   # Dry Bushes (Low resistance)
-        4: 5,    # Ground Clutter (Very low resistance)
-        5: 5,    # Flowers (Very low resistance)
-        6: 100,  # Logs (Impassable/Obstacle)
-        7: 100,  # Rocks (Impassable/Obstacle)
-        8: 2,    # Landscape (Generally safe dirt/terrain)
-        9: 255   # Sky (Not traversable)
+        0: 255,  # Trees (Impassable)
+        1: 40,   # Lush Bushes (High resistance)
+        2: 2,    # Dry Grass (Ideal)
+        3: 20,   # Dry Bushes (Moderate resistance)
+        4: 10,   # Ground Clutter (Low resistance)
+        5: 10,   # Flowers (Low resistance)
+        6: 255,  # Logs (Impassable)
+        7: 255,  # Rocks (Impassable)
+        8: 2,    # Landscape (Ideal)
+        9: 255   # Sky (Impassable)
     }
-
-    # Path Centering Parameters
-    CENTERING_STRENGTH = 10.0  # Higher value = path stays closer to center
-    CORRIDOR_MARGIN = 0.2     # Keep path in middle 60% (ignore 20% on each side)
 
     def __init__(self, costs=None):
         self.costs = costs if costs else self.TRAVERSABILITY_COSTS
 
-    def calculate_cost_map(self, mask):
+    def calculate_cost_map(self, mask, safety_margin=25):
         """
-        Converts a semantic mask to a cost map with noise filtering.
-        
-        Args:
-            mask (np.ndarray): Mask with class indices [0, 9]
-        Returns:
-            np.ndarray: Cost map with values representing traversability cost.
+        Converts semantic mask to a cost map with safety buffers around obstacles.
         """
-        # 1. Base cost map calculation
+        h, w = mask.shape
         cost_map = np.zeros_like(mask, dtype=np.float32)
+        
+        # 1. Base terrain costs
         for class_idx, cost in self.costs.items():
             cost_map[mask == class_idx] = cost
-        
-        # Ensure any unmapped values are high cost
-        cost_map[~np.isin(mask, list(self.costs.keys()))] = 255
 
-        # 2. Noise Filtering: Remove small high-cost artifacts
-        # Identify "Hard" obstacles: Trees (0), Logs (6), Rocks (7)
-        hard_obstacles = np.isin(mask, [0, 6, 7]).astype(np.uint8)
+        # 2. Obstacle Inflation (Safety Buffer)
+        # Identify "Hard" obstacles: Trees, Logs, Rocks
+        obstacles = np.isin(mask, [0, 6, 7]).astype(np.uint8)
         
-        # Use connected components to filter by area
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(hard_obstacles, connectivity=8)
+        # Distance to nearest obstacle (pixels)
+        # 0 at obstacle, high value far away
+        dist_transform = cv2.distanceTransform(1 - obstacles, cv2.DIST_L2, 5)
         
-        # Create a mask for refined obstacles (starting empty)
-        refined_obstacles_mask = np.zeros_like(hard_obstacles)
+        # Add 'Fear' penalty near obstacles: higher cost closer to objects
+        buffer_mask = dist_transform < safety_margin
+        # Exponential curve for smooth repulsion
+        penalty = ((safety_margin - dist_transform[buffer_mask]) / safety_margin) * 50
+        cost_map[buffer_mask] += penalty.astype(np.float32)
         
-        # Minimum area (in pixels) to be considered a real obstacle at 320x320 resolution
-        MIN_OBSTACLE_AREA = 10 
-        
-        for i in range(1, num_labels): # Skip background (index 0)
-            if stats[i, cv2.CC_STAT_AREA] >= MIN_OBSTACLE_AREA:
-                refined_obstacles_mask[labels == i] = 1
-        
-        # Find where an obstacle was "filtered out"
-        filtered_out = (hard_obstacles == 1) & (refined_obstacles_mask == 0)
-        
-        # Replace the cost of filtered-out pixels with a safe landcape cost (2)
-        cost_map[filtered_out] = 2.0
-        
-        return cost_map
+        return np.clip(cost_map, 0, 255)
 
-    def find_safest_path(self, mask, start_pos=None):
+    def heuristic(self, a, b):
+        """Diagonal distance heuristic."""
+        return np.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2)
+
+    def find_safest_path(self, mask):
         """
-        Finds a safest path from the bottom-center region upwards,
-        constrained to a central corridor.
+        Finds a globally optimal path from bottom-center to the horizon using A*.
+        """
+        # Optimization: Downsample for real-time speed (4x speedup)
+        scale = 4
+        h_full, w_full = mask.shape
+        small_mask = cv2.resize(mask, (w_full // scale, h_full // scale), interpolation=cv2.INTER_NEAREST)
         
-        Args:
-            mask (np.ndarray): Semantic mask.
-            start_pos (tuple): (x, y) coordinates of the starting point. 
-                               Defaults to safest point in bottom corridor.
-        Returns:
-            list: List of (x, y) coordinates representing the path.
-        """
-        cost_map = self.calculate_cost_map(mask)
+        # Increased safety margin to account for vehicle width
+        cost_map = self.calculate_cost_map(small_mask, safety_margin=25 // scale)
         h, w = cost_map.shape
-        
-        # Define Corridor horizontal bounds
-        margin_px = int(w * self.CORRIDOR_MARGIN)
-        corridor_min_x = margin_px
-        corridor_max_x = w - margin_px - 1
-        
-        if start_pos is None:
-            # 1. Define region for robust start selection (bottom 5% of image)
-            start_region_h = max(1, int(h * 0.05))
-            bottom_region = cost_map[h - start_region_h : h, corridor_min_x : corridor_max_x + 1]
-            
-            # 2. Average cost per column in this region
-            col_avg_costs = np.mean(bottom_region, axis=0)
-            
-            # 3. Identify "Safe Segments" (where average cost is low)
-            SAFE_START_THRESHOLD = 5.0 # Consider costs below 5 as "safe"
-            is_safe = col_avg_costs < SAFE_START_THRESHOLD
-            
-            # Use connected components/labeling to find contiguous safe segments
-            # Find transitions from False to True or vice versa
-            safe_segments = []
-            if np.any(is_safe):
-                # Simple segment finding
-                start_idx = None
-                for idx, safe in enumerate(is_safe):
-                    if safe and start_idx is None:
-                        start_idx = idx
-                    elif not safe and start_idx is not None:
-                        safe_segments.append((start_idx, idx - 1))
-                        start_idx = None
-                if start_idx is not None:
-                    safe_segments.append((start_idx, len(is_safe) - 1))
-            
-            if safe_segments:
-                # 4. Evaluate segments based on width and proximity to center
-                best_score = -float('inf')
-                best_x = corridor_min_x + (corridor_max_x - corridor_min_x) // 2 # default center
-                
-                center_x_rel = (corridor_max_x - corridor_min_x) // 2
-                
-                for start_s, end_s in safe_segments:
-                    width = end_s - start_s + 1
-                    mid_s = (start_s + end_s) // 2
-                    dist_from_center = abs(mid_s - center_x_rel) / (w / 2)
-                    
-                    # Robust Score Calculation:
-                    # 1. Base score is width (in pixels)
-                    # 2. Subtract centering penalty (scaled down)
-                    # 3. Add width bonus for segments over a minimum width (e.g., vehicle width)
-                    
-                    centering_penalty = self.CENTERING_STRENGTH * dist_from_center
-                    score = width - centering_penalty
-                    
-                    if width > 10: # Bonus for definitely wide enough areas
-                        score += 20
-                    
-                    if score > best_score:
-                        best_score = score
-                        best_x = corridor_min_x + mid_s
-                
-                start_pos = (best_x, h - 1)
-            else:
-                # Fallback to absolute minimum if no safe segments found
-                # Apply centering penalty to start position selection as well
-                center_x = w // 2
-                x_coords_start = np.arange(corridor_min_x, corridor_max_x + 1)
-                dist_from_center_start = np.abs(x_coords_start - center_x) / (w / 2)
-                centering_penalty_start = self.CENTERING_STRENGTH * dist_from_center_start
-                
-                # Use bottom row for fallback
-                bottom_row_corridor = cost_map[h - 1, corridor_min_x : corridor_max_x + 1]
-                combined_start_cost = bottom_row_corridor + centering_penalty_start
-                start_x_idx = np.argmin(combined_start_cost)
-                start_pos = (corridor_min_x + start_x_idx, h - 1)
-            
-        path = [start_pos]
-        curr_x, curr_y = start_pos
-        
-        # Parameters for path search
-        look_ahead = 5  # pixels to jump per step
-        window_size = 60 # width of window to look for lowest cost
-        
-        while curr_y > 0: # Continue until the top of the image
-            next_y = max(0, curr_y - look_ahead)
-            
-            # 1. Determine search window at next_y, constrained by corridor
-            search_min_x = max(corridor_min_x, curr_x - window_size // 2)
-            search_max_x = min(corridor_max_x, curr_x + window_size // 2)
-            
-            if search_min_x >= search_max_x:
-                break
-                
-            window = cost_map[next_y, search_min_x : search_max_x + 1]
-            
-            if len(window) == 0:
-                break
-            
-            # 2. Check for Sky/Horizon
-            if np.mean(mask[next_y, search_min_x : search_max_x + 1] == 9) > 0.5:
-                break
-                
-            # 3. Apply Centering Penalty
-            center_x = w // 2
-            x_coords = np.arange(search_min_x, search_max_x + 1)
-            # Distance from center normalized to [0, 1] within image width
-            dist_from_center = np.abs(x_coords - center_x) / (w / 2)
-            centering_penalty = self.CENTERING_STRENGTH * dist_from_center
-            
-            # Combine traversability cost with centering bias
-            combined_cost = window + centering_penalty
-            
-            # 4. Find index of minimum combined cost
-            min_idx = np.argmin(combined_cost)
-            next_x = search_min_x + min_idx
-            
-            # 5. Smoothing/Momentum
-            next_x = int(0.7 * next_x + 0.3 * curr_x)
-            # Ensure smoothed result stays in corridor
-            next_x = max(corridor_min_x, min(corridor_max_x, next_x))
-            
-            curr_x, curr_y = next_x, next_y
-            path.append((curr_x, curr_y))
-            
-        return path
 
-    def visualize_on_image(self, image, path, color=(0, 255, 0), thickness=5):
-        """
-        Draws the path on an image.
+        start = (h - 1, w // 2)
+        # Define many goals at the top (horizon area)
+        goal_row = 0
         
-        Args:
-            image (np.ndarray): Image to draw on.
-            path (list): List of (x, y) path coordinates.
-        Returns:
-            np.ndarray: Image with path drawn.
-        """
+        close_set = set()
+        came_from = {}
+        gscore = {start: 0}
+        fscore = {start: h} # Heuristic to reach top
+        oheap = []
+        heapq.heappush(oheap, (fscore[start], start))
+
+        # Steering smoothing factors
+        neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+        while oheap:
+            current = heapq.heappop(oheap)[1]
+
+            # If we reached the top row
+            if current[0] <= 1:
+                path = []
+                while current in came_from:
+                    # Scale back to original resolution
+                    path.append((current[1] * scale, current[0] * scale))
+                    current = came_from[current]
+                return path[::-1]
+
+            close_set.add(current)
+            
+            for i, j in neighbors:
+                neighbor = (current[0] + i, current[1] + j)
+                
+                # Boundary check
+                if not (0 <= neighbor[0] < h and 0 <= neighbor[1] < w):
+                    continue
+                
+                # Check for walls
+                move_cost = cost_map[neighbor[0], neighbor[1]]
+                if move_cost >= 200:
+                    continue
+
+                # Distance factor (Diagonal moves are 1.4x further)
+                dist = 1.41 if (i != 0 and j != 0) else 1.0
+                tentative_g_score = gscore[current] + (move_cost * dist)
+
+                if neighbor in close_set and tentative_g_score >= gscore.get(neighbor, 1e9):
+                    continue
+
+                if tentative_g_score < gscore.get(neighbor, 1e9):
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g_score
+                    # Heuristic: Progress toward top + bias to stay centered
+                    fscore[neighbor] = tentative_g_score + neighbor[0] + abs(neighbor[1] - w//2)*0.2
+                    heapq.heappush(oheap, (fscore[neighbor], neighbor))
+
+        return []
+
+    def visualize_on_image(self, image, path, color=(255, 144, 30), thickness=6):
+        """Draws a premium glowing path 'ribbon'."""
         vis_image = image.copy()
         if len(path) < 2:
             return vis_image
             
-        pts = np.array(path, np.int32)
-        pts = pts.reshape((-1, 1, 2))
-        cv2.polylines(vis_image, [pts], False, color, thickness)
+        pts = np.array(path, np.int32).reshape((-1, 1, 2))
+        
+        # Outer Glow (Wide, very transparent)
+        glow_outer = vis_image.copy()
+        cv2.polylines(glow_outer, [pts], False, color, thickness * 8)
+        vis_image = cv2.addWeighted(vis_image, 0.8, glow_outer, 0.2, 0)
+        
+        # Inner Ribbon (Medium)
+        ribbon = vis_image.copy()
+        cv2.polylines(ribbon, [pts], False, color, thickness * 2)
+        vis_image = cv2.addWeighted(vis_image, 0.7, ribbon, 0.3, 0)
+        
+        # Core Line (White/Bright)
+        cv2.polylines(vis_image, [pts], False, (255, 255, 255), thickness // 2)
         
         return vis_image

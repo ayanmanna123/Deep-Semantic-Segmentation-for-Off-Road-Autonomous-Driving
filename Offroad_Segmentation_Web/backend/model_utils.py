@@ -71,14 +71,19 @@ def process_gt_mask(mask_bytes):
     return mapped_mask
 
 def load_model(model_path, device):
-    ENCODER = 'resnet50'
+    ENCODER = 'timm-efficientnet-b3'
     model = smp.DeepLabV3Plus(
         encoder_name=ENCODER, encoder_weights=None, classes=10, activation=None
     )
     if not os.path.exists(model_path):
         raise FileNotFoundError(f"Model file not found at {model_path}")
     
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    checkpoint = torch.load(model_path, map_location=device)
+    if 'model_state_dict' in checkpoint:
+        model.load_state_dict(checkpoint['model_state_dict'])
+    else:
+        model.load_state_dict(checkpoint)
+        
     model.to(device)
     model.eval()
     
