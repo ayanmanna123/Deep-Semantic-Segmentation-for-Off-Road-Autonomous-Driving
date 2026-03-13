@@ -15,9 +15,9 @@ async def run_demo():
     OUTPUT_VIDEO = 'offroad_path_demonstration_realtime.mp4'
     FPS = 4
     
-    # 1. Select images 12-412
+    # 1. Select images 355-800
     image_ids = []
-    for i in range(12, 413):
+    for i in range(355, 801):
         filename = f"cc{str(i).zfill(7)}.png"
         path = os.path.join(IMAGES_DIR, filename)
         if os.path.exists(path):
@@ -58,6 +58,10 @@ async def run_demo():
                 mask_b64 = data.get("mask")
                 mask_w = data.get("maskWidth", 320)
                 mask_h = data.get("maskHeight", 320)
+                
+                if i % 50 == 0:
+                    print(f"Frame {i}: Path length {len(path)}")
+
                 
                 # Visualize
                 # 1. Overlay Mask

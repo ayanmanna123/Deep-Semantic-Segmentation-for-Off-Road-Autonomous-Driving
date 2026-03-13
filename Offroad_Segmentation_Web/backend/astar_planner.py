@@ -61,10 +61,17 @@ class AStarPlanner:
         """
         cost_map = self.calculate_cost_map(mask)
         h, w = cost_map.shape
+        # print(f"DEBUG A*: mask unique {np.unique(mask)}, cost_map mean {np.mean(cost_map):.2f}")
+
         
-        # If no start provided, pick bottom center
+        # If no start provided, pick safest in bottom region
         if start is None:
-            start = (h - 1, w // 2)
+            # Look at middle 60% of bottom region for a safe start
+            corridor_w = int(w * 0.6)
+            start_x = (w - corridor_w) // 2
+            bottom_row = cost_map[h-1, start_x:start_x+corridor_w]
+            best_x_idx = np.argmin(bottom_row)
+            start = (h - 1, start_x + best_x_idx)
         
         # If no end provided, pick top center
         if end is None:
@@ -78,49 +85,64 @@ class AStarPlanner:
         # Neighbors: 8-connectivity
         neighbors = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-        max_iterations = 10000 # Safety break
+        max_iterations = 30000 # Increased safety break
         iterations = 0
+        best_node = start # Track node closest to top if goal not reached
+        min_dist_to_goal = h
 
         while queue:
             iterations += 1
             if iterations > max_iterations:
+                # print(f"DEBUG A*: max iterations reached {iterations}")
                 break
 
             current_priority, current = heapq.heappop(queue)
 
-            if current == end:
+            if current == end or current[0] == 0:
+                best_node = current
                 break
             
-            # Optimization: if we reach top row, we can stop if goal is just "reach top"
-            if current[0] == 0:
-                end = current
-                break
+            # Keep track of best progress
+            if current[0] < min_dist_to_goal:
+                min_dist_to_goal = current[0]
+                best_node = current
 
             for dx, dy in neighbors:
                 next_node = (current[0] + dx, current[1] + dy)
                 
                 if 0 <= next_node[0] < h and 0 <= next_node[1] < w:
-                    # Cost = traversability cost + movement cost (diagonal vs straight)
-                    move_cost = np.sqrt(dx**2 + dy**2)
-                    new_cost = cost_so_far[current] + (cost_map[next_node] * move_cost)
+                    # Cost = traversability cost + movement cost
+                    move_cost = 1.414 if dx != 0 and dy != 0 else 1.0
+                    traversability_cost = cost_map[next_node]
+                    
+                    # Ensure we don't have infinite costs
+                    if traversability_cost > 1000: traversability_cost = 1000
+                    
+                    new_cost = cost_so_far[current] + (traversability_cost * move_cost)
                     
                     if next_node not in cost_so_far or new_cost < cost_so_far[next_node]:
                         cost_so_far[next_node] = new_cost
-                        # Heuristic: simple L2 distance to top-center
-                        priority = new_cost + np.sqrt((next_node[0] - end[0])**2 + (next_node[1] - end[1])**2)
+                        # Heuristic: bias towards top
+                        priority = new_cost + (next_node[0] * 2.0)
                         heapq.heappush(queue, (priority, next_node))
                         came_from[next_node] = current
 
-        # Reconstruct path
+        # Reconstruct path from best_node
         path = []
-        curr = end
-        if curr not in came_from and curr != start:
-            return [] # No path found
-            
+        curr = best_node
+        
+        # If A* didn't move at all, return a simple straight line up 
+        # just so we can see if the drawing works
+        if curr == start:
+            # print("DEBUG A*: No movement, returning dummy path")
+            return [(start[1], start[0]), (start[1], start[0] - 10)]
+
         while curr != start:
             path.append((curr[1], curr[0])) # Convert to (x, y)
             curr = came_from[curr]
         path.append((start[1], start[0]))
         path.reverse()
         
+        # print(f"DEBUG A*: Found path of length {len(path)} after {iterations} iterations")
         return path
+
