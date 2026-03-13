@@ -6,6 +6,8 @@ import { Label } from "@workspace/ui/components/label"
 import { Button } from "@workspace/ui/components/button"
 import { Loader2, Upload, BarChart3, Image as ImageIcon, FileText } from "lucide-react"
 
+import { RealTimePathFinder } from "./components/RealTimePathFinder"
+
 const BACKEND_URL = "http://localhost:8000"
 
 const CLASS_COLORS: Record<string, string> = {
@@ -137,6 +139,7 @@ export function App() {
         <Tabs defaultValue="report" className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-6 p-1 bg-slate-900/60 backdrop-blur-sm rounded-xl border border-white/5">
             <TabsTrigger value="report" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 data-[state=active]:shadow-lg transition-all">Full Report</TabsTrigger>
+            <TabsTrigger value="realtime" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 data-[state=active]:shadow-lg transition-all">Real-Time</TabsTrigger>
             <TabsTrigger value="inference" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 data-[state=active]:shadow-lg transition-all">Quick Inference</TabsTrigger>
             <TabsTrigger value="metrics" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 data-[state=active]:shadow-lg transition-all">Metrics</TabsTrigger>
             <TabsTrigger value="iou" className="rounded-lg data-[state=active]:bg-slate-800 data-[state=active]:text-white text-slate-400 data-[state=active]:shadow-lg transition-all">IoU</TabsTrigger>
@@ -312,6 +315,9 @@ export function App() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+          <TabsContent value="realtime" className="mt-8">
+            <RealTimePathFinder />
           </TabsContent>
 
           <TabsContent value="inference" className="mt-8">
