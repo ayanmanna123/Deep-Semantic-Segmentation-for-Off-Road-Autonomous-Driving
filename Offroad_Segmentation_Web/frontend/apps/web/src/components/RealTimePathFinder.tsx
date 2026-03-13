@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@work
 import { Button } from "@workspace/ui/components/button";
 import { Loader2, Camera, CameraOff, Navigation } from "lucide-react";
 
-const WS_URL = "ws://localhost:8001/ws/pathfinder";
+const WS_URL = 'ws://localhost:8002/ws/pathfinder';
 
 export function RealTimePathFinder() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -57,7 +57,7 @@ export function RealTimePathFinder() {
     };
     wsRef.current.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      drawPath(data.path, data.maskWidth, data.maskHeight);
+      drawPath(data.path, data.maskWidth, data.maskHeight, data.mask);
     };
     wsRef.current.onerror = (err) => {
       console.error("WebSocket error:", err);
@@ -78,13 +78,13 @@ export function RealTimePathFinder() {
       wsRef.current.send(JSON.stringify({ frame }));
     }
 
-    // Process next frame after a slight delay to avoid overwhelming the server
+    // Process next frame after a delay to avoid overwhelming the server
     setTimeout(() => {
         animationFrameRef.current = requestAnimationFrame(processFrame);
-    }, 100); 
+    }, 250); 
   };
 
-  const drawPath = (path: [number, number][], maskW: number, maskH: number) => {
+  const drawPath = (path: [number, number][], maskW: number, maskH: number, maskBase64?: string) => {
     if (!canvasRef.current || !videoRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
@@ -95,27 +95,48 @@ export function RealTimePathFinder() {
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    if (!path || path.length < 2) return;
+    // 1. Draw Segmentation Mask Overlay
+    if (maskBase64) {
+      const img = new Image();
+      img.src = `data:image/jpeg;base64,${maskBase64}`;
+      img.onload = () => {
+        ctx.globalAlpha = 0.4; // 40% transparency for the obstacles
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        ctx.globalAlpha = 1.0;
+        
+        // 2. Draw Navigation Path
+        if (path && path.length >= 2) {
+          const scaleX = canvas.width / maskW;
+          const scaleY = canvas.height / maskH;
 
-    const scaleX = canvas.width / maskW;
-    const scaleY = canvas.height / maskH;
+          // Outer Glow
+          ctx.beginPath();
+          ctx.lineWidth = 14;
+          ctx.strokeStyle = 'rgba(79, 70, 229, 0.3)'; // Faded Indigo
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.moveTo(path[0][0] * scaleX, path[0][1] * scaleY);
+          for (let i = 1; i < path.length; i++) ctx.lineTo(path[i][0] * scaleX, path[i][1] * scaleY);
+          ctx.stroke();
 
-    ctx.beginPath();
-    ctx.lineWidth = 8;
-    ctx.strokeStyle = '#4f46e5'; // Indigo-600
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+          // Main Path Line
+          ctx.beginPath();
+          ctx.lineWidth = 8;
+          ctx.strokeStyle = '#4f46e5'; // Indigo-600
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.moveTo(path[0][0] * scaleX, path[0][1] * scaleY);
+          for (let i = 1; i < path.length; i++) ctx.lineTo(path[i][0] * scaleX, path[i][1] * scaleY);
+          ctx.stroke();
 
-    ctx.moveTo(path[0][0] * scaleX, path[0][1] * scaleY);
-    for (let i = 1; i < path.length; i++) {
-      ctx.lineTo(path[i][0] * scaleX, path[i][1] * scaleY);
+          // Center Highlight Line
+          ctx.beginPath();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = '#c7d2fe'; // Indigo-200
+          ctx.stroke();
+        }
+      };
     }
-    ctx.stroke();
-
-    // Secondary glow effect
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#818cf8'; // Indigo-400
-    ctx.stroke();
   };
 
   useEffect(() => {

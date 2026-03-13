@@ -93,9 +93,9 @@ def mask_to_color(mask):
 def main():
     # --- CONFIG ---
     # Adjust weights path if needed
-    MODEL_PATH = r'C:\Users\manna\Coding\My_Practice\Duality-AI-s-Offroad-Semantic-Scene-Segmentation\Offroad_Segmentation_Scripts\runs\checkpoints\best_model (1).pth'
+    MODEL_PATH = os.path.join('runs', 'checkpoints', 'best_model (1).pth')
     # Adjust data dir to point to some images
-    DATA_DIR = r'C:\Users\manna\Coding\My_Practice\Duality-AI-s-Offroad-Semantic-Scene-Segmentation\Offroad_Segmentation_Training_Dataset\val\Color_Images'
+    DATA_DIR = os.path.join('..', 'Offroad_Segmentation_Training_Dataset', 'val', 'Color_Images')
     OUTPUT_DIR = './final_visualization_results'
     ENCODER = 'timm-efficientnet-b5' 
     DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

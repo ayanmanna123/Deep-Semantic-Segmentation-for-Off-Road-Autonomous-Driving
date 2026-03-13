@@ -1,0 +1,15 @@
+C:\Users\manna\Coding\Hackthons\Deep-Semantic-Segmentation-for-Off-Road-Autonomous-Driving\Offroad_Segmentation_Web\backend\realtime_server.py:32: DeprecationWarning: 
+        on_event is deprecated, use lifespan event handlers instead.
+
+        Read more about it in the
+        [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+        
+  @app.on_event("startup")
+INFO:     Started server process [17232]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ERROR:    [Errno 10048] error while attempting to bind on address ('0.0.0.0', 8001): [winerror 10048] only one usage of each socket address (protocol/network address/port) is normally permitted
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+Loading ONNX model from best_model.onnx...
+ONNX Model loaded successfully with providers: ['CPUExecutionProvider']
