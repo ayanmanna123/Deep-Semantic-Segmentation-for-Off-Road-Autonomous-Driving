@@ -43,20 +43,11 @@ export function App() {
   return (
     <div className="min-h-screen bg-[#0a0a0c] p-8 text-slate-100 font-sans selection:bg-indigo-500/30">
       <div className="mx-auto max-w-7xl space-y-8">
-        <header className="space-y-2 flex justify-between items-end">
-          <div>
-            <h1 className="text-5xl font-extrabold tracking-tighter text-white mt-4">
-              Offroad <span className="text-indigo-400 italic">Segmentation</span> Explorer
-            </h1>
-            <p className="text-xl text-slate-400 font-light">Precision analytics for rugged terrain perception.</p>
-          </div>
-          <div className="text-right hidden md:block">
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-600">Static Project Site</p>
-            <p className="text-sm font-medium flex items-center gap-2 justify-end text-slate-300">
-              <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse"></span>
-              Offline Model Showcase
-            </p>
-          </div>
+        <header className="space-y-2">
+          <h1 className="text-5xl font-extrabold tracking-tighter text-white mt-4">
+            Offroad <span className="text-indigo-400 italic">Segmentation</span> Explorer
+          </h1>
+          <p className="text-xl text-slate-400 font-light">Precision analytics for rugged terrain perception.</p>
         </header>
 
         {/* Highlight Stats Dashboard */}
@@ -135,6 +126,112 @@ export function App() {
           <TabsContent value="overview" className="mt-8 space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 space-y-6">
+                {/* About, Impact & Use Cases Card */}
+                <Card className="border border-white/5 shadow-xl bg-slate-900/40 backdrop-blur-xl rounded-2xl ring-1 ring-white/5">
+                  <CardHeader className="bg-white/[0.02] border-b border-white/5 flex flex-row items-center gap-4 p-8">
+                    <Map className="h-7 w-7 text-indigo-400 shrink-0" />
+                    <div>
+                      <CardTitle className="text-3xl font-extrabold text-white tracking-tight">Project Overview, Impact & Use Cases</CardTitle>
+                      <CardDescription className="text-base text-slate-400 mt-1">Understanding offroad perception engineering, its real-world impact, and deployment scenarios.</CardDescription>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-8 space-y-8">
+                    {/* The Project Section */}
+                    <div className="space-y-4">
+                      <h3 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                        <span className="h-4 w-1.5 bg-indigo-500 rounded-full"></span>
+                        The Project
+                      </h3>
+                      <div className="space-y-4 text-base lg:text-lg leading-relaxed text-slate-300">
+                        <p>
+                          Standard autonomous vehicles navigate using structured roads, painted lane markings, and uniform surroundings. In offroad environments, these reference points are completely absent. Autonomous systems must cross open deserts, thick shrubbery, rocks, and logs.
+                        </p>
+                        <p>
+                          This project implements a state-of-the-art semantic scene segmentation algorithm built specifically for offroad navigation. Powered by a <strong className="text-indigo-300 font-semibold">DeepLabV3+</strong> architecture and a high-capacity <strong className="text-indigo-300 font-semibold">EfficientNet-B5</strong> encoder, our model segments complex textures in real-time, allowing automated path planners to identify safe paths through rugged terrains.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Impact & Use Cases Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
+                      {/* Real-World Impact Section */}
+                      <div className="space-y-4">
+                        <h3 className="text-xl lg:text-2xl font-bold text-indigo-400 tracking-tight flex items-center gap-2">
+                          <span className="h-4 w-1.5 bg-indigo-500 rounded-full"></span>
+                          Real-World Impact
+                        </h3>
+                        <div className="space-y-4">
+                          <div className="border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-indigo-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Disaster & Crisis Navigation</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              In extreme events like earthquakes or urban conflict zones where infrastructure is destroyed and buildings have collapsed, our model identifies the safest paths to successfully navigate the debris and reach the destination.
+                            </p>
+                          </div>
+                          
+                          <div className="border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-indigo-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Collision Avoidance</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Prevents structural chassis damage by identifying rocks and logs that traditional sensors might miss.
+                            </p>
+                          </div>
+
+                          <div className="border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-indigo-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">High-Speed Traversability</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Promotes real-time path planning, allowing vehicles to maintain speed rather than crawling over scanned terrain.
+                            </p>
+                          </div>
+
+                          <div className="border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-indigo-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Robust Generalization</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Operates under challenging offroad conditions such as dynamic lighting, harsh shadows, and dusty environments.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Key Use Cases Section */}
+                      <div className="space-y-4">
+                        <h3 className="text-xl lg:text-2xl font-bold text-purple-400 tracking-tight flex items-center gap-2">
+                          <span className="h-4 w-1.5 bg-purple-500 rounded-full"></span>
+                          Key Use Cases
+                        </h3>
+                        <div className="space-y-4">
+                          <div className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-purple-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Tactical Defense (UGVs)</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Deploying unmanned ground vehicles for reconnaissance without human personnel exposure.
+                            </p>
+                          </div>
+
+                          <div className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-purple-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Search & Rescue (SAR)</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Navigating remote, disaster-stricken areas where traditional roads have been destroyed.
+                            </p>
+                          </div>
+
+                          <div className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-purple-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Planetary Exploration</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Autonomously steering exploration rovers through rocky ground clutter and sandy craters.
+                            </p>
+                          </div>
+
+                          <div className="border-l-4 border-purple-500 bg-gradient-to-r from-purple-500/10 to-transparent p-4 rounded-r-xl space-y-1 transition-all hover:from-purple-500/15 duration-300">
+                            <h4 className="text-sm lg:text-base font-bold text-white">Industrial Automation</h4>
+                            <p className="text-xs lg:text-sm text-slate-400 leading-relaxed mt-1">
+                              Operating large-scale automated machinery in remote mining, agriculture, and forestry sites.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Video Demonstration Card */}
                 <Card className="border border-white/5 shadow-2xl bg-slate-900/40 backdrop-blur-xl rounded-2xl overflow-hidden ring-1 ring-white/5">
                   <CardHeader className="bg-white/[0.02] border-b border-white/5 flex flex-row items-center gap-3">
                     <Video className="h-6 w-6 text-indigo-400" />
@@ -156,27 +253,6 @@ export function App() {
                         className="w-full object-cover"
                       />
                     </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border border-white/5 shadow-xl bg-slate-900/40 backdrop-blur-xl rounded-2xl ring-1 ring-white/5">
-                  <CardHeader className="bg-white/[0.02] border-b border-white/5 flex flex-row items-center gap-3">
-                    <Map className="h-6 w-6 text-indigo-400" />
-                    <div>
-                      <CardTitle className="text-white">Project Mission & Strategy</CardTitle>
-                      <CardDescription className="text-slate-400">The core objective and engineering solution.</CardDescription>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-6 space-y-4 text-slate-300 leading-relaxed text-sm">
-                    <p>
-                      Standard autonomous navigation frameworks rely heavily on structured streets, readable lane lines, and uniform surroundings. In unstructured offroad environments, these guideposts vanish. Autonomous systems must operate in desert sands, thick vegetation, rocky surfaces, and rugged terrains.
-                    </p>
-                    <p>
-                      This project presents a state-of-the-art semantic scene segmentation algorithm designed specifically for offroad perception. Using a deep neural network based on the <strong>DeepLabV3+</strong> architecture with a pre-trained high-capacity <strong>EfficientNet-B5</strong> encoder, the model identifies terrain elements and potential obstacles. 
-                    </p>
-                    <p>
-                      The segmented map is processed in real-time, allowing pathfinders (such as the A* algorithm shown in the video) to plot safe, traversable routes, avoiding severe navigation obstacles like rocks, trees, and logs while favoring safer surfaces like dry grass and plain ground.
-                    </p>
                   </CardContent>
                 </Card>
               </div>
