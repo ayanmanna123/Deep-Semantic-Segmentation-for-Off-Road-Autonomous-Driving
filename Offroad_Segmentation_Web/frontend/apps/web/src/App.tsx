@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@work
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@workspace/ui/components/tabs"
 import { 
   TrendingUp, 
-  BarChart3, 
   PieChart, 
   Grid, 
   Cpu, 
