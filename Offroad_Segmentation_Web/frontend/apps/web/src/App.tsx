@@ -76,8 +76,8 @@ export function App() {
                 </span>
               </div>
               <div>
-                <h3 className="text-3xl font-extrabold text-white">1,002</h3>
-                <p className="text-[10px] text-purple-300 font-medium mt-1">High-Res Annotated Images</p>
+                <h3 className="text-3xl font-extrabold text-white">10,000+</h3>
+                <p className="text-[10px] text-purple-300 font-medium mt-1">High-Res Annotated Dataset</p>
               </div>
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export function App() {
                   <CardContent className="p-6 bg-black flex justify-center">
                     <div className="w-full max-w-4xl rounded-xl overflow-hidden shadow-inner border border-white/10">
                       <video 
-                        src="/offroad_path_demonstration.mp4" 
+                        src="https://ik.imagekit.io/h0gbowxm32/offroad_path_demonstration_realtime.mp4?updatedAt=1777880209651" 
                         controls 
                         autoPlay 
                         loop 
